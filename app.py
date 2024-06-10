@@ -5,6 +5,9 @@ from colormath.color_conversions import convert_color
 import numpy as np
 import os
 
+# Set Streamlit page configuration to fullscreen
+st.set_page_config(layout="wide")
+
 # Define paths to the JSON files relative to the script location
 base_dir = os.path.dirname(os.path.abspath(__file__))
 ral_classic_path = os.path.join(base_dir, 'ral-colors.json')
@@ -52,20 +55,32 @@ if hex_color:
     
     # Display the input color
     st.markdown(f"<div style='text-align:center; padding:10px; font-size:24px;'>Input Color: {hex_color}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div style='background-color:{hex_color}; height:192px;'></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='background-color:{hex_color}; height:192px; width:100%;'></div>", unsafe_allow_html=True)
     
-    # Display the matching RAL colors
-    for diff, ral_hex, ral_name in closest_colors:
-        st.markdown(f"<div style='background-color:{ral_hex}; height:192px; margin:0;'></div>", unsafe_allow_html=True)
-        st.markdown(f"<div style='text-align:center; padding:10px; font-size:18px;'>{ral_name} - {ral_hex}</div>", unsafe_allow_html=True)
+    # Display the matching RAL colors side by side
+    cols = st.columns(num_matches)
+    for i, (diff, ral_hex, ral_name) in enumerate(closest_colors):
+        with cols[i]:
+            st.markdown(f"<div style='background-color:{ral_hex}; height:192px; margin:0;'></div>", unsafe_allow_html=True)
+    
+    # Display the hex and RAL codes below each swatch
+    cols = st.columns(num_matches)
+    for i, (diff, ral_hex, ral_name) in enumerate(closest_colors):
+        with cols[i]:
+            st.markdown(f"<div style='text-align:center; padding:10px; font-size:18px;'>{ral_name} - {ral_hex}</div>", unsafe_allow_html=True)
 
+# Custom CSS to remove gaps and make the app fullscreen
 st.markdown(
     """
     <style>
+    .css-18e3th9 {padding-top: 1rem; padding-bottom: 1rem;}
+    .css-1d391kg {padding-top: 1rem; padding-bottom: 1rem;}
     .stTextInput div {text-align: center;}
     .stSelectbox div {text-align: center;}
     .stButton div {text-align: center;}
     .stButton button {margin: 0 auto;}
+    .css-1outpf7 {padding: 0;}
+    .css-12oz5g7 {padding: 0;}
     </style>
     """,
     unsafe_allow_html=True
