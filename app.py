@@ -44,8 +44,8 @@ precomputed_lab = get_precomputed_lab()
 def parse_ral_design_name(ral_name):
     parts = ral_name.split()
     h = int(parts[1])
-    c = int(parts[2])
-    l = int(parts[3])
+    c = int(parts[3])
+    l = int(parts[2])
     return h, c, l
 
 def delta_e_cie2000(lab1, lab2):
@@ -110,6 +110,7 @@ def find_closest_ral_colors(input_lab, ral_lab, num_matches, hue_range=None, lig
     for ral_name, ral_lab_values in ral_lab.items():
         if hue_range or lightness_range or chroma_range:
             h, c, l = parse_ral_design_name(ral_name)
+#            print(f"RAL: {ral_name}, H: {h}, C: {c}, L: {l}")
             if hue_range and not (hue_range[0] <= h <= hue_range[1]):
                 continue
             if lightness_range and not (lightness_range[0] <= l <= lightness_range[1]):
