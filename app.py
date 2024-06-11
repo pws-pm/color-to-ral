@@ -4,6 +4,7 @@ from colormath.color_objects import sRGBColor, LabColor
 from colormath.color_conversions import convert_color
 import numpy as np
 import os
+import colour
 
 # Set Streamlit page configuration to fullscreen
 st.set_page_config(layout="wide")
@@ -48,76 +49,21 @@ def parse_ral_design_name(ral_name):
     l = int(parts[2])
     return h, c, l
 
-def delta_e_cie2000(lab1, lab2):
-    # Implementation of the CIEDE2000 formula
-    L1, a1, b1 = lab1.lab_l, lab1.lab_a, lab1.lab_b
-    L2, a2, b2 = lab2.lab_l, lab2.lab_a, lab2.lab_b
-
-    kL, kC, kH = 1, 1, 1
-
-    delta_L_prime = L2 - L1
-    L_bar = (L1 + L2) / 2
-
-    C1 = np.sqrt(a1**2 + b1**2)
-    C2 = np.sqrt(a2**2 + b2**2)
-    C_bar = (C1 + C2) / 2
-    C_bar7 = C_bar**7
-
-    G = 0.5 * (1 - np.sqrt(C_bar7 / (C_bar7 + 25**7)))
-
-    a1_prime = a1 * (1 + G)
-    a2_prime = a2 * (1 + G)
-    C1_prime = np.sqrt(a1_prime**2 + b1**2)
-    C2_prime = np.sqrt(a2_prime**2 + b2**2)
-    C_bar_prime = (C1_prime + C2_prime) / 2
-
-    h1_prime = np.degrees(np.arctan2(b1, a1_prime)) % 360
-    h2_prime = np.degrees(np.arctan2(b2, a2_prime)) % 360
-
-    H_bar_prime = (h1_prime + h2_prime) / 2 if abs(h1_prime - h2_prime) <= 180 else \
-                  (h1_prime + h2_prime + 360) / 2 if h1_prime + h2_prime < 360 else \
-                  (h1_prime + h2_prime - 360) / 2
-
-    T = 1 - 0.17 * np.cos(np.radians(H_bar_prime - 30)) + 0.24 * np.cos(np.radians(2 * H_bar_prime)) + \
-        0.32 * np.cos(np.radians(3 * H_bar_prime + 6)) - 0.20 * np.cos(np.radians(4 * H_bar_prime - 63))
-
-    delta_h_prime = h2_prime - h1_prime if abs(h2_prime - h1_prime) <= 180 else \
-                    h2_prime - h1_prime + 360 if h2_prime <= h1_prime else \
-                    h2_prime - h1_prime - 360
-
-    delta_C_prime = C2_prime - C1_prime
-    delta_H_prime = 2 * np.sqrt(C1_prime * C2_prime) * np.sin(np.radians(delta_h_prime / 2))
-
-    S_L = 1 + ((0.015 * (L_bar - 50)**2) / np.sqrt(20 + (L_bar - 50)**2))
-    S_C = 1 + 0.045 * C_bar_prime
-    S_H = 1 + 0.015 * C_bar_prime * T
-
-    delta_theta = 30 * np.exp(-(((H_bar_prime - 275) / 25)**2))
-    R_C = 2 * np.sqrt(C_bar_prime**7 / (C_bar_prime**7 + 25**7))
-    R_T = -R_C * np.sin(2 * np.radians(delta_theta))
-
-    delta_E = np.sqrt(
-        (delta_L_prime / (kL * S_L))**2 +
-        (delta_C_prime / (kC * S_C))**2 +
-        (delta_H_prime / (kH * S_H))**2 +
-        R_T * (delta_C_prime / (kC * S_C)) * (delta_H_prime / (kH * S_H))
-    )
-
-    return delta_E
-
 def find_closest_ral_colors(input_lab, ral_lab, num_matches, hue_range=None, lightness_range=None, chroma_range=None):
     differences = []
     for ral_name, ral_lab_values in ral_lab.items():
         if hue_range or lightness_range or chroma_range:
             h, c, l = parse_ral_design_name(ral_name)
-#            print(f"RAL: {ral_name}, H: {h}, C: {c}, L: {l}")
             if hue_range and not (hue_range[0] <= h <= hue_range[1]):
                 continue
             if lightness_range and not (lightness_range[0] <= l <= lightness_range[1]):
                 continue
             if chroma_range and not (chroma_range[0] <= c <= chroma_range[1]):
                 continue
-        diff = delta_e_cie2000(input_lab, ral_lab_values)
+        # Convert LabColor objects to arrays for colour-science
+        input_lab_array = np.array([input_lab.lab_l, input_lab.lab_a, input_lab.lab_b])
+        ral_lab_array = np.array([ral_lab_values.lab_l, ral_lab_values.lab_a, ral_lab_values.lab_b])
+        diff = colour.delta_E(input_lab_array, ral_lab_array, method='CIE 2000')
         differences.append((diff, ral_name))
     
     differences.sort(key=lambda x: x[0])
